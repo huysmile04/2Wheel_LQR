@@ -1,0 +1,20 @@
+Encoder:
+-Đỏ: dây nguồn cấp cho động cơ
+-Đen: gnd cho encoder
+-Vàng: trả xung A, được đếm liên tục, chỉ có tăng dần
+	-Đcơ bên trái: 3
+	-Đcơ bên phải: 2
+
+-Xanh lá: trả xung B, xác định số xung khi quay bánh quanh vị trí ban đầu, có âm có dương
+	-Đcơ bên trái: 28
+	-Đcơ bên phải: 22
+
+-Xanh dương: nguồn encoder 3.3v
+-Trắng: gnd nguồn cấp cho động cơ
+L298:
+-Đcơ bên trái: in3: 34
+	       in4: 36
+	       enB: 10
+-Đcơ bên phải: in1: 30
+	       in2: 32
+	       enA: 9
