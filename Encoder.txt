@@ -18,3 +18,8 @@ L298:
 -Đcơ bên phải: in1: 30
 	       in2: 32
 	       enA: 9
+Khối lượng xe: 690g
+Điện áp: 12V
+Dòng điện qua động cơ: 70mA
+Mô men xoắn: 4.4 kg.cm
+Tốc độ: 130rpm
