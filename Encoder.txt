@@ -25,3 +25,7 @@ Mô men xoắn: 4.4 kg.cm
 Tốc độ: 130rpm
 Công suất động cơ: 0.726W
 Điện trở trong của động cơ: 166.66Ohm
+Chiều dài xe (chưa kể phần bánh xe): 14.9cm
+Chiều dài cả xe: 21cm
+Chiều cao xe: 10.6cm
+Bán kính bánh xe: 0.0325m
