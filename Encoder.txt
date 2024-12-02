@@ -23,3 +23,4 @@ Khối lượng xe: 690g
 Dòng điện qua động cơ: 70mA
 Mô men xoắn: 4.4 kg.cm
 Tốc độ: 130rpm
+Công suất động cơ: 0.726W
