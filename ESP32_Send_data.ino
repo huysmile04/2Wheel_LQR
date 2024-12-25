@@ -2,65 +2,48 @@
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 
-const char *ssid = "Thanh Phuc 4G";
-const char *password = "12345678kst";
+// Configurations for static IP
+IPAddress local_IP(192, 168, 1, 184);
+IPAddress gateway(192, 168, 1, 1);
+IPAddress subnet(255, 255, 255, 0);
+IPAddress primaryDNS(8, 8, 8, 8); // optional
+IPAddress secondaryDNS(8, 8, 4, 4); // optional
 
-// Static IP address configuration
-IPAddress local_IP(192, 168, 1, 184);  // Your desired static IP
-IPAddress gateway(192, 168, 1, 1);     // Your network Gateway (usually your router's IP)
-IPAddress subnet(255, 255, 255, 0);    // Your network Subnet
+const char* ssid = "Thanh Phuc 4G";
+const char* password = "12345678kst";
 
 AsyncWebServer server(80);
-String controlCommand = "";
-String ipAddress = "";     // Khai báo biến toàn cục để lưu địa chỉ IP
-String signalData = "";    // Biến để lưu dữ liệu tín hiệu
-String receivedData = "";  // Biến để lưu dữ liệu MPU6050 nhận được
 
-// Variables for the moving average filter
-const int filterSize = 10;
-int16_t thetaBuffer[filterSize];
-int16_t psiBuffer[filterSize];
-int16_t phiBuffer[filterSize];
-int filterIndex = 0;
-
-void connectToWiFi() {
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-
-  Serial.print("Đang kết nối tới WiFi...");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.print('.');
-  }
-  Serial.println();
-
-  // Hiển thị địa chỉ IP
-  ipAddress = WiFi.localIP().toString();
-  Serial.print("Đã kết nối tới WiFi, Địa chỉ IP: ");
-  Serial.println(ipAddress);
-}
+String data1 = "0", data2 = "0", data3 = "0";
 
 void setup() {
-  Serial.begin(9600);  // Serial với Arduino Mega 2560
+  Serial.begin(9600);
 
-  // Cố gắng cài đặt địa chỉ IP tĩnh
-  if (!WiFi.config(local_IP, gateway, subnet)) {
-    Serial.println("STA Không cấu hình được");
+  // Connect to Wi-Fi with static IP
+  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
+    Serial.println("STA Failed to configure");
   }
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi...");
+  }
+  Serial.println("Connected to WiFi");
+  Serial.print("IP Address: ");
+  Serial.println(WiFi.localIP());
 
-  connectToWiFi();
-
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    String html = "<!DOCTYPE html><html><head><title>Balanced 2-wheel vehicle parameter monitoring </title><style>";
+  // Serve web page
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    String html = "<!DOCTYPE html><html><head><title>Balanced 2-wheel vehicle parameter monitoring</title><style>";
     html += "body { font-family: Arial, sans-serif; text-align: center; }";
     html += "button { width: 100px; height: 50px; margin: 10px; border: none; border-radius: 5px; background-color: #4CAF50; color: white; font-size: 16px; cursor: pointer; transition: background-color 0.3s, transform 0.3s; }";
     html += "button:hover { background-color: #45a049; transform: scale(1.1); }";
     html += "button:active { background-color: #3e8e41; transform: scale(0.9); }";
-    html += ".chart-container { display: flex; justify-content: space-around; flex-wrap: wrap; }";
-    html += "canvas { width: 30%; height: 150px; }";  // Điều chỉnh kích thước cho biểu đồ nhỏ hơn
+    html += ".chart-container { display: flex; justify-content: center; flex-wrap: wrap; }";
+    html += "canvas { width: 30%; height: 300px; }";  // Adjust size for three charts
     html += "</style></head><body>";
-    html += "<h1>Address IP: " + ipAddress + "</h1>";  // Hiển thị địa chỉ IP
-    html += "<button onclick=\"sendCommand('1')\">Foward</button>";
+    html += "<h1>Address IP: " + WiFi.localIP().toString() + "</h1>";  // Hiển thị địa chỉ IP
+    html += "<button onclick=\"sendCommand('1')\">Forward</button>";
     html += "<button onclick=\"sendCommand('3')\">Back</button>";
     html += "<button onclick=\"sendCommand('5')\">Left</button>";
     html += "<button onclick=\"sendCommand('7')\">Right</button>";
@@ -88,13 +71,13 @@ void setup() {
     html += "});";
     html += "var chart2 = new Chart(ctx2, {";
     html += "  type: 'line',";
-    html += "  data: { labels: [], datasets: [{ label: 'psi', data: [], borderColor: 'rgba(192, 75, 192, 1)', borderWidth: 1, pointRadius: 1 }] },";
+    html += "  data: { labels: [], datasets: [{ label: 'psi', data: [], borderColor: 'rgba(192, 75, 75, 1)', borderWidth: 1, pointRadius: 1 }] },";
     html += "  options: { scales: { x: { type: 'linear', position: 'bottom', ticks: { callback: function(value, index, values) { return value / 1000 + ' s'; } } } } },";
     html += "  options: { animation: false }";  // Disable animation for smooth updates
     html += "});";
     html += "var chart3 = new Chart(ctx3, {";
     html += "  type: 'line',";
-    html += "  data: { labels: [], datasets: [{ label: 'phi', data: [], borderColor: 'rgba(192, 192, 75, 1)', borderWidth: 1, pointRadius: 1 }] },";
+    html += "  data: { labels: [], datasets: [{ label: 'phi', data: [], borderColor: 'rgba(75, 75, 192, 1)', borderWidth: 1, pointRadius: 1 }] },";
     html += "  options: { scales: { x: { type: 'linear', position: 'bottom', ticks: { callback: function(value, index, values) { return value / 1000 + ' s'; } } } } },";
     html += "  options: { animation: false }";  // Disable animation for smooth updates
     html += "});";
@@ -105,24 +88,24 @@ void setup() {
     html += "      var data = JSON.parse(this.responseText);";
     html += "      chart1.data.labels.push(data.time);";
     html += "      chart1.data.datasets[0].data.push(data.theta);";
+    html += "      chart2.data.labels.push(data.time);";
+    html += "      chart2.data.datasets[0].data.push(data.psi);";
+    html += "      chart3.data.labels.push(data.time);";
+    html += "      chart3.data.datasets[0].data.push(data.phi);";
     html += "      if (chart1.data.labels.length > 100) {";
     html += "        chart1.data.labels.shift();";
     html += "        chart1.data.datasets[0].data.shift();";
     html += "      }";
-    html += "      chart1.update();";
-    html += "      chart2.data.labels.push(data.time);";
-    html += "      chart2.data.datasets[0].data.push(data.psi);";
     html += "      if (chart2.data.labels.length > 100) {";
     html += "        chart2.data.labels.shift();";
     html += "        chart2.data.datasets[0].data.shift();";
     html += "      }";
-    html += "      chart2.update();";
-    html += "      chart3.data.labels.push(data.time);";
-    html += "      chart3.data.datasets[0].data.push(data.phi);";
     html += "      if (chart3.data.labels.length > 100) {";
     html += "        chart3.data.labels.shift();";
     html += "        chart3.data.datasets[0].data.shift();";
     html += "      }";
+    html += "      chart1.update();";
+    html += "      chart2.update();";
     html += "      chart3.update();";
     html += "    }";
     html += "  };";
@@ -134,71 +117,42 @@ void setup() {
     request->send(200, "text/html", html);
   });
 
-  server.on("/control", HTTP_GET, [](AsyncWebServerRequest *request) {
+  server.on("/control", HTTP_GET, [](AsyncWebServerRequest *request){
+    String command;
     if (request->hasParam("cmd")) {
-      controlCommand = request->getParam("cmd")->value();
-      request->send(200, "text/plain", "Lệnh đã nhận: " + controlCommand);
-      Serial.println(controlCommand);  // Gửi lệnh tới Arduino Mega 2560
-    } else {
-      request->send(404, "text/plain", "Không có lệnh nào được gửi");
+      command = request->getParam("cmd")->value();
+      Serial.println("Command received: " + command);
     }
+    request->send(200, "text/plain", "OK");
   });
 
-  server.on("/signal", HTTP_GET, [](AsyncWebServerRequest *request) {
+  server.on("/signal", HTTP_GET, [](AsyncWebServerRequest *request){
     DynamicJsonDocument doc(1024);
     doc["time"] = millis();
-    // Phân tích dữ liệu nhận được thành theta, psi, phi
-    int16_t theta, psi, phi;
-    sscanf(signalData.c_str(), "Accel: %d,%d,%d", &theta, &psi, &phi);
-
-    // Apply moving average filter
-    thetaBuffer[filterIndex] = theta;
-    psiBuffer[filterIndex] = psi;
-    phiBuffer[filterIndex] = phi;
-    filterIndex = (filterIndex + 1) % filterSize;
-
-    float sumTheta = 0, sumPsi = 0, sumPhi = 0;
-    for (int i = 0; i < filterSize; i++) {
-      sumTheta += thetaBuffer[i];
-      sumPsi += psiBuffer[i];
-      sumPhi += phiBuffer[i];
-    }
-
-    float avgTheta = sumTheta / filterSize;
-    float avgPsi = sumPsi / filterSize;
-    float avgPhi = sumPhi / filterSize;
-
-    doc["theta"] = avgTheta;
-    doc["psi"] = avgPsi;
-    doc["phi"] = avgPhi;
-
-    String json;
-    serializeJson(doc, json);
-    request->send(200, "application/json", json);
-
-    // Hiển thị giá trị lên Serial Monitor
-    Serial.print("Giá trị nhận được - Theta: ");
-    Serial.print(avgTheta);
-    Serial.print(", Psi: ");
-    Serial.print(avgPsi);
-    Serial.print(", Phi: ");
-    Serial.println(avgPhi);
+    doc["theta"] = data1.toFloat(); // Example value
+    doc["psi"] = data2.toFloat(); // Example value
+    doc["phi"] = data3.toFloat(); // Example value
+    String jsonResponse;
+    serializeJson(doc, jsonResponse);
+    request->send(200, "application/json", jsonResponse);
   });
 
   server.begin();
 }
 
 void loop() {
+  // Kiểm tra nếu có dữ liệu từ Arduino Uno gửi đến
   if (Serial.available()) {
-    signalData = Serial.readString();
-    Serial.println("Nhận từ Arduino: " + signalData);
+    String data = Serial.readStringUntil('\n');
+    Serial.println("Data from Arduino Uno: " + data);
+
+    // Giả sử dữ liệu là chuỗi được phân cách bởi dấu phẩy
+    int firstComma = data.indexOf(',');
+    int secondComma = data.indexOf(',', firstComma + 1);
+
+    data1 = data.substring(0, firstComma);
+    data2 = data.substring(firstComma + 1, secondComma);
+    data3 = data.substring(secondComma + 1);
   }
-  if (controlCommand != "") {
-    Serial.println(controlCommand);  // Gửi lệnh tới Arduino Mega 2560
-    controlCommand = "";
-  }
-  if (WiFi.status() != WL_CONNECTED) {
-    connectToWiFi();
-  }
-  delay(50);
+  // delay(1000); // Đợi 1 giây giữa các lần gửi
 }
