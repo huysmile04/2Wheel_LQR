@@ -1,5 +1,9 @@
 #include <Wire.h>
 #include <Kalman.h>
+#include <SoftwareSerial.h>
+
+SoftwareSerial mySerial(11, 12); // RX, TX
+
 #define ToDeg 180/PI
 #define ToRad PI/180
 Kalman kalman;
@@ -43,8 +47,8 @@ float LeftRight;
 
 void setup() {
   Serial.begin(19200);
-  Serial1.begin(115200);
-  Serial2.begin(9600);  // Initialize Serial2 for communication with ESP32
+  mySerial.begin(9600);
+  //mySerial.begin(9600);  // Initialize mySerial for communication with ESP32
   pinMode(13, OUTPUT);
   K1 = 10;
   K2 = 15;
@@ -96,8 +100,8 @@ void setup() {
 
 void loop() {
   readmpu();
-  if (Serial1.available()) {
-    char data = Serial1.read();
+  if (mySerial.available()) {
+    char data = mySerial.read();
     Serial.println("Received command: " + String(data));
   }
   if ((micros() - timerloop) > 6000) {
@@ -124,11 +128,11 @@ void loop() {
     Serial.print(",");
     Serial.println(phi, 6);
     // Send theta, psi, and phi to ESP32
-    Serial2.print(theta, 6);
-    Serial2.print(",");
-    Serial2.print(psi, 6);
-    Serial2.print(",");
-    Serial2.println(phi, 6);
+    mySerial.print(theta, 6);
+    mySerial.print(",");
+    mySerial.print(psi, 6);
+    mySerial.print(",");
+    mySerial.println(phi, 6);
   }
 }
 
@@ -241,8 +245,8 @@ void righmotor(uint8_t rpwm, int direct) {
 }
 
 void serialEvent2() {
-  if (Serial2.available()) {
-    data = Serial2.read();
+  if (mySerial.available()) {
+    data = mySerial.read();
     if (data == '1') {
       Serial.print(data);
       ForwardBack = 5;
