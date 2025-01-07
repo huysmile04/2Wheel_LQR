@@ -14,18 +14,16 @@ const char* ssid = "Thanh Phuc 4G";
 const char* password = "12345678kst";
 AsyncWebServer server(80);
 
-float psi = 0;            // Angle with respect to vertical axis
-float filteredPsi = 0;    // Filtered angle
-const float alpha = 0.1;  // Smoothing factor for noise filtering
+float psi = 0;
+
 
 void setup() {
   Serial.begin(9600);
   Wire.begin();  // Initialize I2C
 
-  // MPU6050 Initialization
-  Wire.beginTransmission(0x68);  // MPU6050 I2C address
-  Wire.write(0x6B);              // Power management register
-  Wire.write(0x00);              // Wake up MPU6050
+  Wire.beginTransmission(0x68);  
+  Wire.write(0x6B);              
+  Wire.write(0x00);              
   Wire.endTransmission(true);
 
   // Connect to Wi-Fi with static IP
@@ -70,7 +68,7 @@ void setup() {
     html += " data: { labels: [], datasets: [{ label: 'psi', data: [], borderColor: 'rgba(192, 75, 75, 1)', borderWidth: 1, pointRadius: 1 }] },";
     html += " options: { scales: {";
     html += " x: { type: 'linear', position: 'bottom', ticks: { callback: function(value, index, values) { return value / 1000 + ' s'; } } },";
-    html += " y: { min: -2, max: 2, grid: { drawBorder: true, color: function(context) { return context.tick.value === 0 ? 'red' : 'rgba(0,0,0,0.1)'; } } }";
+    html += " y: { min: -10, max: 10, grid: { drawBorder: true, color: function(context) { return context.tick.value === 0 ? 'red' : 'rgba(0,0,0,0.1)'; } } }";
     html += " }, animation: false }";
     html += "});";
     html += "setInterval(function() {";
@@ -89,7 +87,7 @@ void setup() {
     html += " };";
     html += " xhttp.open('GET', '/signal', true);";
     html += " xhttp.send();";
-    html += "}, 100);";  // Update every 500 milliseconds
+    html += "}, 500);";  
     html += "</script>";
     html += "</body></html>";
     request->send(200, "text/html", html);
@@ -98,12 +96,11 @@ void setup() {
   server.on("/signal", HTTP_GET, [](AsyncWebServerRequest* request) {
     DynamicJsonDocument doc(1024);
     doc["time"] = millis();
-    doc["psi"] = filteredPsi;  // Send filtered psi data
+    doc["psi"] = psi;  // Send filtered psi data
     String jsonResponse;
     serializeJson(doc, jsonResponse);
     request->send(200, "application/json", jsonResponse);
   });
-
   server.begin();
 }
 
@@ -117,10 +114,7 @@ void loop() {
   int16_t ax = Wire.read() << 8 | Wire.read();
   int16_t ay = Wire.read() << 8 | Wire.read();
   int16_t az = Wire.read() << 8 | Wire.read();
-
-  // Calculate angle psi
   psi = (atan2(ay, az) * 180 / 3.14159) + 0.45;  // Convert to degrees
-
-  // Apply low-pass filter to reduce noise
-  filteredPsi = alpha * psi + (1 - alpha) * filteredPsi;
+  Serial.println(psi);
+  delay(200);
 }
