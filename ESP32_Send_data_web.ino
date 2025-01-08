@@ -3,15 +3,8 @@
 #include <ArduinoJson.h>
 #include <Wire.h>
 
-// Configurations for static IP
-IPAddress local_IP(192, 168, 1, 184);
-IPAddress gateway(192, 168, 1, 1);
-IPAddress subnet(255, 255, 255, 0);
-IPAddress primaryDNS(8, 8, 8, 8);    // optional
-IPAddress secondaryDNS(8, 8, 4, 4);  // optional
-
-const char* ssid = "Thanh Phuc 4G";
-const char* password = "12345678kst";
+const char* ssid = "2 wheel balance";
+const char* password = "balancecar";
 AsyncWebServer server(80);
 
 float psi = 0;            // Angle with respect to vertical axis
@@ -115,7 +108,7 @@ void loop() {
   int16_t az = Wire.read() << 8 | Wire.read();
 
   // Calculate angle psi
-  psi = (atan2(ay, az) * 180 / 3.14159) + 0.45;  // Convert to degrees
+  psi = (atan2(ay, az) * 180 / 3.14159) + 0.5;  // Convert to degrees
 
   // Apply low-pass filter to reduce noise
   filteredPsi = alpha * psi + (1 - alpha) * filteredPsi;
