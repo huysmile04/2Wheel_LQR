@@ -14,22 +14,21 @@ const char* ssid = "Thanh Phuc 4G";
 const char* password = "12345678kst";
 AsyncWebServer server(80);
 
-float psi = 0;
-
+float psi = 0;            // Angle with respect to vertical axis
+float filteredPsi = 0;    // Filtered angle
+const float alpha = 0.1;  // Smoothing factor for noise filtering
 
 void setup() {
   Serial.begin(9600);
   Wire.begin();  // Initialize I2C
 
-  Wire.beginTransmission(0x68);  
-  Wire.write(0x6B);              
-  Wire.write(0x00);              
+  // MPU6050 Initialization
+  Wire.beginTransmission(0x68);  // MPU6050 I2C address
+  Wire.write(0x6B);              // Power management register
+  Wire.write(0x00);              // Wake up MPU6050
   Wire.endTransmission(true);
 
-  // Connect to Wi-Fi with static IP
-  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
-    Serial.println("STA Failed to configure");
-  }
+  // Connect to Wi-Fi with dynamic IP
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
@@ -87,7 +86,7 @@ void setup() {
     html += " };";
     html += " xhttp.open('GET', '/signal', true);";
     html += " xhttp.send();";
-    html += "}, 500);";  
+    html += "}, 500);";  // Update every 500 milliseconds
     html += "</script>";
     html += "</body></html>";
     request->send(200, "text/html", html);
@@ -96,7 +95,7 @@ void setup() {
   server.on("/signal", HTTP_GET, [](AsyncWebServerRequest* request) {
     DynamicJsonDocument doc(1024);
     doc["time"] = millis();
-    doc["psi"] = psi;  // Send filtered psi data
+    doc["psi"] = filteredPsi;  // Send filtered psi data
     String jsonResponse;
     serializeJson(doc, jsonResponse);
     request->send(200, "application/json", jsonResponse);
@@ -114,7 +113,12 @@ void loop() {
   int16_t ax = Wire.read() << 8 | Wire.read();
   int16_t ay = Wire.read() << 8 | Wire.read();
   int16_t az = Wire.read() << 8 | Wire.read();
+
+  // Calculate angle psi
   psi = (atan2(ay, az) * 180 / 3.14159) + 0.45;  // Convert to degrees
+
+  // Apply low-pass filter to reduce noise
+  filteredPsi = alpha * psi + (1 - alpha) * filteredPsi;
   Serial.println(psi);
   delay(200);
 }
